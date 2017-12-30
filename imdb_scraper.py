@@ -74,11 +74,18 @@ class IMDBScraper(object):
         asset['rating_imdb'] = float(soup.find('span', {'itemprop': 'ratingValue'}).text)
         asset['rating_imdb_count'] = int(soup.find('span', {'itemprop': 'ratingCount'}).text.replace(',', ''))
 
+        asset['storyline']: str = self._parse_story_line_from_soup(soup)
+
         asset['persons'] = {}
         directors_raw = soup.find('h4', text=re.compile('Directed by')).find_next('tbody').find_all('a')
         for director_raw in directors_raw:
             asset['persons']['director'] = re.findall('name/nm.*/', director_raw['href'])[0][7:-1]
         return asset
+
+    @staticmethod
+    def _parse_story_line_from_soup(soup: BeautifulSoup) -> str:
+        storyline_raw: str = soup.find('div', {'class': 'inline canwrap', 'itemprop': 'description'}).p.get_text()
+        return storyline_raw.replace("\n", "").replace('"', "")
 
     @staticmethod
     def _parse_budget_from_soup(soup: BeautifulSoup) -> Optional[int]:
