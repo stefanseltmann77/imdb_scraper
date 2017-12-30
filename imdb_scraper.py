@@ -103,7 +103,7 @@ class IMDBScraper(object):
 
     @staticmethod
     def _parse_fsk_from_soup(soup: BeautifulSoup) -> int:
-        soup_search_result = soup.find_all('a', {'href': re.compile("/search/title\?certificates=(de|imdb_wg):[0-9]")})
+        soup_search_result = soup.find_all('a', {'href': re.compile("/search/title\?certificates=(de|imdb_wg|DE):[0-9]")})
         if not soup_search_result:
             fsk = 99
         else:
