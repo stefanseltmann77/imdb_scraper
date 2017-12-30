@@ -101,7 +101,7 @@ class IMDBScraper(object):
 
     @staticmethod
     def _parse_year_from_title(title_string: str) -> int:
-        if title_string.find('TV Series') > 0:
+        if 'TV Series' in title_string or "Mini-Series" in title_string:
             year_search = re.search('\(.+\)$', title_string).group(0)
             year = int(year_search.split(' ')[2][0:4])
         else:
