@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 
 @pytest.fixture
 def scraper():
-    from imdb_scraper import IMDBScraper
+    from imdbscraper.imdb_scraper import IMDBScraper
     return IMDBScraper("")
 
 
@@ -47,3 +47,20 @@ class TestIMDBScraper:
                                 </li>"""
         soup = BeautifulSoup(website, 'html.parser')
         assert scraper._parse_fsk_from_soup(soup) == 12
+
+    def test__storyline_from_soup(self, scraper):
+        website = """<h2>Storyline</h2>
+        <div class="inline canwrap">
+            <p>
+                <span>    In the aftermath of <a href="/title/tt3498820?ref_=tt_stry_pl">The First Avenger: 
+                Civil War</a> (2016), Scott Lang grapples with the consequences of his choices as both a superhero 
+                and a father. As he struggles to rebalance his home life with his responsibilities as Ant-Man, 
+                he's confronted by Hope van Dyne and Dr. Hank Pym with an urgent new mission. 
+                Scott must once again put on the suit and learn to fight alongside The 
+                Wasp as the team works together to uncover secrets from their past.</span>
+                <em class="nobr">Written by
+<a href="/search/title?plot_author=Walt%20Disney%20Studios&view=simple&sort=alpha&ref_=tt_stry_pl"
+>Walt Disney Studios</a></em>            </p>
+        </div>"""
+        soup = BeautifulSoup(website, 'html.parser')
+        print(scraper._parse_story_line_from_soup(soup))

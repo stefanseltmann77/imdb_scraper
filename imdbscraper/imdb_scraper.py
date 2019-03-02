@@ -114,7 +114,7 @@ class IMDBScraper:
     @staticmethod
     def _parse_story_line_from_soup(soup: BeautifulSoup) -> str:
         try:
-            storyline_raw: str = soup.find('div', {'class': 'inline canwrap', 'itemprop': 'description'}).p.get_text()
+            storyline_raw: str = soup.find('div', {'class': 'inline canwrap'}).p.span.get_text()
         except AttributeError:
             storyline_raw = ""  # fixme
         return storyline_raw.replace("\n", "").replace('"', "")
