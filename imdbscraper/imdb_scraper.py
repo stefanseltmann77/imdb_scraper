@@ -220,3 +220,4 @@ class IMDBScraper:
         else:
             website = request.urlopen(listing_url).read()
             soup = BeautifulSoup(website, 'html.parser')
+            return [int(finding['data-tconst'].strip('t')) for finding in soup.find_all('div', {'class': 'wlb_ribbon'})]
