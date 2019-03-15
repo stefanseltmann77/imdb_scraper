@@ -195,3 +195,14 @@ class IMDBScraper:
                 else:
                     raise Exception
         return awards
+
+    def get_chart_ids(self, listing: str):
+        listing_map = {'URL_TOP250': "https://www.imdb.com/chart/top?ref_=nv_mv_250",
+                       'URL_BOTTOM100': "https://www.imdb.com/chart/bottom",
+                       'URL_TOP250_ENGL': "https://www.imdb.com/chart/top-english-movies"}
+        listing_url = listing_map.get(listing)
+        if not listing_url:
+            raise Exception(f"Not supported listing. Choose from {listing_map.keys()}!")
+        else:
+            website = request.urlopen(listing_url).read()
+            soup = BeautifulSoup(website, 'html.parser')
