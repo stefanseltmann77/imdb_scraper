@@ -59,8 +59,8 @@ class TestIMDBScraper:
                 Scott must once again put on the suit and learn to fight alongside The 
                 Wasp as the team works together to uncover secrets from their past.</span>
                 <em class="nobr">Written by
-<a href="/search/title?plot_author=Walt%20Disney%20Studios&view=simple&sort=alpha&ref_=tt_stry_pl"
->Walt Disney Studios</a></em>            </p>
+                <a href="/search/title?plot_author=Walt%20Disney%20Studios&view=simple&sort=alpha&ref_=tt_stry_pl"
+                >Walt Disney Studios</a></em>            </p>
         </div>"""
         soup = BeautifulSoup(website, 'html.parser')
-        print(scraper._parse_story_line_from_soup(soup))
+        assert scraper._parse_storyline_from_soup(soup).startswith('In the aftermath')

@@ -51,8 +51,8 @@ class IMDBScraper:
             url_movie: str = self.url_base.format(str(imdb_movie_id).zfill(7))
             website_string = request.urlopen(url_movie).read()
             for sub_site in ('parentalguide', 'fullcredits', 'awards', 'business', 'companycredits', 'technical',
-                             'keywords'):
-                website_sub = request.urlopen('{}/{}'.format(url_movie, sub_site))
+                             'keywords', 'plotsummary'):
+                website_sub = request.urlopen(f'{url_movie}/{sub_site}')
                 website_string += website_sub.read()
             with open(self.dir_cache + '/movies/{}.imdb_movie'.format(imdb_movie_id), 'wb') as f:
                 f.write(website_string)
@@ -111,13 +111,23 @@ class IMDBScraper:
         persons = {'actor': actor_ids}
         return persons
 
-    @staticmethod
-    def _parse_story_line_from_soup(soup: BeautifulSoup) -> str:
+    def _parse_storyline_from_soup(self, soup: BeautifulSoup) -> str:
         try:
             storyline_raw: str = soup.find('div', {'class': 'inline canwrap'}).p.span.get_text()
         except AttributeError:
             storyline_raw = ""  # fixme
-        return storyline_raw.replace("\n", "").replace('"', "")
+        if not storyline_raw:
+            self.logger.error("No storyline found!")
+        return storyline_raw.replace("\n", "").replace('"', "").strip()
+
+    def _parse_synopsis_from_soup(self, soup: BeautifulSoup) -> str:
+        try:
+            synopsis: str = soup.find('ul', {'id': 'plot-synopsis-content'}).get_text()
+        except AttributeError:
+            synopsis = ""  # fixme
+        if not synopsis:
+            self.logger.error("No storyline found!")
+        return synopsis.replace("\n", "").replace('"', "").strip()
 
     @staticmethod
     def _parse_budget_from_soup(soup: BeautifulSoup) -> Optional[int]:
