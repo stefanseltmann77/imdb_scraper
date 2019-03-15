@@ -10,8 +10,11 @@ def scraper():
 
 class TestIMDBScraper:
 
-    def test__parse_year_from_title(self, scraper):
-        assert scraper._parse_year_from_title("Carlos (TV Mini-Series 2010– )") == 2010
+    def test__parse_year_from_soup(self, scraper):
+        website = '<h1 class="">Total Recall&nbsp;<span id="titleYear">' \
+                  '(<a href="/year/2012/?ref_=tt_ov_inf">2012</a>)</span></h1>'
+        soup = BeautifulSoup(website, 'html.parser')
+        assert scraper._parse_year_from_soup(soup) == 2012
 
     def test_parse_genre_from_soup(self, scraper):
         website = """<div class="subtext">12<span class="ghost">|</span><time datetime="PT152M">2h 32min

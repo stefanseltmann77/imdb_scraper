@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
+from dataclasses import dataclass
+from pathlib import Path
+
 __author__ = "Stefan Seltmann"
-__interpreter__ = "3.6.3"
+__interpreter__ = "3.7.1"
 import logging
 import re
 from logging import NullHandler
@@ -10,8 +13,24 @@ from urllib import request
 from bs4 import BeautifulSoup
 
 
+@dataclass
+class IMDBAsset:
+    imdb_movie_id: int
+    title_orig: str
+    year: int
+    duration: int
+    fsk: int
+    storyline: str
+    genres: Set[str]
+    persons: dict
+    awards: dict
+    ratings: dict
+    budget: int
+    synopsis: str
+
+
 class IMDBScraper:
-    url_base: str = 'http://www.imdb.com/title/tt{}'
+    URL_BASE: str = 'http://www.imdb.com/title/tt'
     dir_cache: str
 
     def __init__(self, dir_cache: str):
@@ -20,7 +39,7 @@ class IMDBScraper:
         self.logger = logging.getLogger(__name__)
         self.logger.addHandler(NullHandler())
 
-    def process_imdb_movie_id(self, imdb_movie_id: int, use_cache: bool = True) -> dict:
+    def process_imdb_movie_id(self, imdb_movie_id: int, use_cache: bool = True) -> IMDBAsset:
         """Get website for a given imdb_movie_id and return parsed asset
 
         :param imdb_movie_id:
@@ -39,49 +58,48 @@ class IMDBScraper:
         :return: raw string of the website
         """
         website_string: str = None
+        file_path = Path(self.dir_cache) / Path(f"{imdb_movie_id}.imdb_movie")
         if use_cache:
             try:
-                with open(self.dir_cache + '/movies/{}.imdb_movie'.format(imdb_movie_id), 'rb') as file_handle:
+                with open(file_path, 'rb') as file_handle:
                     website_string = file_handle.read()
-                    self.logger.info("Loading cached website for {}.".format(imdb_movie_id))
+                    self.logger.info(f"Loading cached website for {imdb_movie_id}.")
             except FileNotFoundError:
-                self.logger.info("{} not found in cache.".format(imdb_movie_id))
+                self.logger.info(f"{imdb_movie_id} not found in cache.")
         if not website_string or not use_cache:
-            self.logger.info("Retrieving website for {}.".format(imdb_movie_id))
-            url_movie: str = self.url_base.format(str(imdb_movie_id).zfill(7))
+            self.logger.info(f"Retrieving website for {imdb_movie_id}.")
+            url_movie: str = self.URL_BASE + str(imdb_movie_id).zfill(7)
             website_string = request.urlopen(url_movie).read()
             for sub_site in ('parentalguide', 'fullcredits', 'awards', 'business', 'companycredits', 'technical',
                              'keywords', 'plotsummary'):
                 website_sub = request.urlopen(f'{url_movie}/{sub_site}')
                 website_string += website_sub.read()
-            with open(self.dir_cache + '/movies/{}.imdb_movie'.format(imdb_movie_id), 'wb') as f:
+            with open(file_path, 'wb') as f:
                 f.write(website_string)
         return website_string
 
-    def parse_webcontent_4_imdb_movie(self, imdb_movie_id: int, website: str) -> dict:
-        self.logger.info("Parsing webcontent for {}".format(imdb_movie_id))
-        asset = {'imdb_movie_id': imdb_movie_id}
+    def parse_webcontent_4_imdb_movie(self, imdb_movie_id: int, website: str) -> IMDBAsset:
+        self.logger.info(f"Parsing webcontent for {imdb_movie_id}")
         soup = BeautifulSoup(website, 'html.parser')
         title_orig = soup.find('meta', {'property': 'og:title'})['content']
-        asset['title_orig'] = ' '.join(title_orig.split(' ')[:-1])
-        asset['year'] = self._parse_year_from_title(title_orig)
-        asset['awards'] = self._parse_awards_from_soup(soup.find_all('table', {'class': 'awards'}))
-        asset['genres'] = self._parse_genre_from_soup(soup)
-        asset['budget'] = self._parse_budget_from_soup(soup)
-        asset['duration'] = self._parse_runtime_from_soup(soup.find('time'))
-        asset['fsk'] = self._parse_fsk_from_soup(soup)
-
-        ratings = self._parse_rating_from_soup(soup)
-        asset.update(ratings)
-        print(asset)
-
-        asset['storyline']: str = self._parse_story_line_from_soup(soup)
-
-        asset['persons'] = self._parse_credits_from_soup(soup.find('div', {'id': 'fullcredits_content'}))
+        persons = self._parse_credits_from_soup(soup.find('div', {'id': 'fullcredits_content'}))
         directors_raw = soup.find('h4', text=re.compile('Directed by')).find_next('tbody').find_all('a')
         for director_raw in directors_raw:
-            asset['persons'].setdefault('director', []).append(re.findall('name/nm.*/', director_raw['href'])[0][7:-1])
-        return asset
+            persons.setdefault('director', []).append(re.findall('name/nm.*/', director_raw['href'])[0][7:-1])
+        asset_obj = IMDBAsset(imdb_movie_id,
+                              title_orig=title_orig.split('(')[0].strip(),
+                              year=self._parse_year_from_soup(soup),
+                              duration=self._parse_runtime_from_soup(soup.find('time')),
+                              fsk=self._parse_fsk_from_soup(soup),
+                              storyline=self._parse_storyline_from_soup(soup),
+                              genres=self._parse_genre_from_soup(soup),
+                              persons=persons,
+                              awards=self._parse_awards_from_soup(soup.find_all('table', {'class': 'awards'})),
+                              ratings=self._parse_rating_from_soup(soup),
+                              budget=self._parse_budget_from_soup(soup),
+                              synopsis=self._parse_synopsis_from_soup(soup)
+                              )
+        return asset_obj
 
     @staticmethod
     def _parse_rating_from_soup(soup: BeautifulSoup):
@@ -142,13 +160,9 @@ class IMDBScraper:
         return budget
 
     @staticmethod
-    def _parse_year_from_title(title_string: str) -> int:
-        if 'TV Series' in title_string or "Mini-Series" in title_string:
-            year_search = re.search(r'\(.+\)$', title_string).group(0)
-            year = int(year_search.split(' ')[2][0:4])
-        else:
-            year = int(title_string.split(' ')[-1].replace('(', '').replace(')', ''))
-        return year
+    def _parse_year_from_soup(soup: BeautifulSoup) -> int:
+        year: str = soup.find('span', {'id': 'titleYear'}).a.get_text()
+        return int(year)
 
     @staticmethod
     def _parse_fsk_from_soup(soup: BeautifulSoup) -> int:
