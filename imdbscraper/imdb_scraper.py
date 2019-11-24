@@ -7,9 +7,10 @@ __interpreter__ = "3.7.1"
 import logging
 import re
 from logging import NullHandler
-from typing import Optional, Set
+from typing import Optional, Set, List, Dict
 from urllib import request
 
+import bs4
 from bs4 import BeautifulSoup
 
 
@@ -57,7 +58,7 @@ class IMDBScraper:
         :param use_cache: if true, a already stored string will be used and no request to the website will be made
         :return: raw string of the website
         """
-        website_string: str = None
+        website_string: bytes = b""
         file_path = Path(self.dir_cache) / Path(f"{imdb_movie_id}.imdb_movie")
         if use_cache:
             try:
@@ -76,7 +77,7 @@ class IMDBScraper:
                 website_string += website_sub.read()
             with open(file_path, 'wb') as f:
                 f.write(website_string)
-        return website_string
+        return website_string.decode("utf-8")
 
     def parse_webcontent_4_imdb_movie(self, imdb_movie_id: int, website: str) -> IMDBAsset:
         self.logger.info(f"Parsing webcontent for {imdb_movie_id}")
@@ -123,9 +124,14 @@ class IMDBScraper:
         return genres
 
     @staticmethod
-    def _parse_credits_from_soup(soup: BeautifulSoup) -> dict:
-        res = soup.find_all("td", attrs={'itemprop': 'actor'})
-        actor_ids = [int(html.find('a', attrs={'itemprop': 'url'}).attrs['href'].split("/")[2][2:]) for html in res]
+    def _parse_credits_from_soup(soup: BeautifulSoup) -> Dict[str, List[int]]:
+        res = soup.find("table", attrs={'class': 'cast_list'}).findChildren('a', {'href': re.compile('/name/nm+.')})
+        for chunk in res[::2]:
+            chunk: bs4.element.Tag
+            href_str = chunk.attrs.get("href", "")
+            print(href_str.split("/")[2][2:])
+            # print(chunk.split("/"))
+        actor_ids: List[int] = [int(chunk.attrs.get("href", "").split("/")[2][2:]) for chunk in res[::2]]
         persons = {'actor': actor_ids}
         return persons
 
@@ -210,6 +216,7 @@ class IMDBScraper:
                     raise Exception
         return awards
 
+    @staticmethod
     def get_chart_ids(self, listing: str):
         listing_map = {'URL_TOP250': "https://www.imdb.com/chart/top?ref_=nv_mv_250",
                        'URL_BOTTOM100': "https://www.imdb.com/chart/bottom",
