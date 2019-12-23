@@ -19,14 +19,14 @@ class IMDBAsset:
     imdb_movie_id: int
     title_orig: str
     year: int
-    duration: int
+    duration: Optional[int]
     fsk: int
     storyline: str
     genres: Set[str]
     persons: dict
     awards: dict
     ratings: dict
-    budget: int
+    budget: Optional[int]
     synopsis: str
 
 
@@ -125,9 +125,9 @@ class IMDBScraper:
 
     @staticmethod
     def _parse_credits_from_soup(soup: BeautifulSoup) -> Dict[str, List[int]]:
-        res = soup.find("table", attrs={'class': 'cast_list'}).findChildren('a', {'href': re.compile('/name/nm+.')})
+        res: List[bs4.element.Tag] = soup.find("table", attrs={'class': 'cast_list'}). \
+            findChildren('a', {'href': re.compile('/name/nm+.')})
         for chunk in res[::2]:
-            chunk: bs4.element.Tag
             href_str = chunk.attrs.get("href", "")
             print(href_str.split("/")[2][2:])
             # print(chunk.split("/"))
@@ -182,7 +182,8 @@ class IMDBScraper:
         return fsk
 
     @staticmethod
-    def _parse_runtime_from_soup(soup: BeautifulSoup) -> int:
+    def _parse_runtime_from_soup(soup: BeautifulSoup) -> Optional[int]:
+        runtime: Optional[int] = None
         if soup:
             try:
                 runtime_str = soup.text.strip()
@@ -193,13 +194,11 @@ class IMDBScraper:
                     runtime = int(soup.text.strip().replace(' min', ''))
             except ValueError:
                 runtime = None
-        else:
-            runtime = None
         return runtime
 
     @staticmethod
-    def _parse_awards_from_soup(soup: BeautifulSoup) -> dict:
-        awards = {}
+    def _parse_awards_from_soup(soup: BeautifulSoup) -> Dict:
+        awards: Dict = {}
         for award_table in soup:
             cells = award_table.find_all('td')
             award_outcome_current = None
