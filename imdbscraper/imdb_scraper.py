@@ -1,12 +1,9 @@
 # -*- coding: utf-8 -*-
-from dataclasses import dataclass
-from pathlib import Path
-
-__author__ = "Stefan Seltmann"
-__interpreter__ = "3.7.1"
 import logging
 import re
+from dataclasses import dataclass
 from logging import NullHandler
+from pathlib import Path
 from typing import Optional, Set, List, Dict
 from urllib import request
 
@@ -216,7 +213,7 @@ class IMDBScraper:
         return awards
 
     @staticmethod
-    def get_chart_ids(self, listing: str):
+    def get_chart_ids(listing: str):
         listing_map = {'URL_TOP250': "https://www.imdb.com/chart/top?ref_=nv_mv_250",
                        'URL_BOTTOM100': "https://www.imdb.com/chart/bottom",
                        'URL_TOP250_ENGL': "https://www.imdb.com/chart/top-english-movies"}
