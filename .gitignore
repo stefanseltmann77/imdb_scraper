@@ -2,3 +2,4 @@
 .idea
 sphinx
 run
+/.mypy_cache/
