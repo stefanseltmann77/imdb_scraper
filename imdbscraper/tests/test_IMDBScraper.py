@@ -17,15 +17,15 @@ class TestIMDBScraper:
         assert scraper._parse_year_from_soup(soup) == 2012
 
     def test_parse_genre_from_soup(self, scraper):
-        website = """<div class="subtext">12<span class="ghost">|</span><time datetime="PT152M">2h 32min
-            </time>    <span class="ghost">|</span><a href="/genre/Action?ref_=tt_ov_inf">Action</a>, 
-            <a href="/genre/Adventure?ref_=tt_ov_inf">Adventure</a>,<a href="/genre/Fantasy?ref_=tt_ov_inf">Fantasy</a>
-            <a href="/genre/Sci-Fi?ref_=tt_stry_gnr"> Sci-Fi</a>
-            <span class="ghost">|</span><a href="/title/tt2527336/releaseinfo?ref_=tt_ov_inf" title="See 
-            more release dates" >14 December 2017 (Germany)</a></div>"""
+        website = """<div class="subtext">12<span class="ghost">|</span><time datetime="PT135M">2h 15min</time>
+        <span class="ghost">|</span><a href="/search/title?genres=action&explore=title_type,genres&ref_=tt_ov_inf">Action</a>, 
+        <a href="/search/title?genres=adventure&explore=title_type,genres&ref_=tt_ov_inf">Adventure</a>,
+        <a href="/search/title?genres=sci-fi&explore=title_type,genres&ref_=tt_ov_inf">Sci-Fi</a><span class="ghost">|</span>
+        <a href="/title/tt3778644/releaseinfo?ref_=tt_ov_inf"
+            title="See more release dates" >24 May 2018 (Germany)</a></div>"""
         soup = BeautifulSoup(website, 'html.parser')
         result = scraper._parse_genre_from_soup(soup)
-        assert result == {'Adventure', 'Fantasy', 'Action', 'Sci-Fi'}
+        assert result == {'Adventure', 'Action', 'Sci-Fi'}
 
     def test__parse_rating_from_soup(self, scraper):
         website = """<div class="imdbRating"><div class="ratingValue"><strong title="7,2 based on 413.699 user ratings">

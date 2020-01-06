@@ -116,7 +116,7 @@ class IMDBScraper:
             genres_raw = search.find_all('a')
             genres = {genre.text.strip() for genre in genres_raw}
         else:
-            genres_raw = soup.find_all('a', attrs={'href': re.compile("^/genre/")})
+            genres_raw = soup.find_all('a', attrs={'href': re.compile("genres=")})
             genres = {element.contents[0].strip() for element in genres_raw}
         return genres
 
@@ -126,8 +126,6 @@ class IMDBScraper:
             findChildren('a', {'href': re.compile('/name/nm+.')})
         for chunk in res[::2]:
             href_str = chunk.attrs.get("href", "")
-            print(href_str.split("/")[2][2:])
-            # print(chunk.split("/"))
         actor_ids: List[int] = [int(chunk.attrs.get("href", "").split("/")[2][2:]) for chunk in res[::2]]
         persons = {'actor': actor_ids}
         return persons
