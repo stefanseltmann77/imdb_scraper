@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import logging
 import re
 from dataclasses import dataclass
@@ -27,7 +26,7 @@ class IMDBAsset:
     synopsis: str
 
 
-class IMDBScraper:
+class IMDBAssetScraper:
     URL_BASE: str = 'http://www.imdb.com/title/tt'
     dir_cache: str
 

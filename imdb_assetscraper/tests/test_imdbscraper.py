@@ -4,8 +4,8 @@ from bs4 import BeautifulSoup
 
 @pytest.fixture
 def scraper():
-    from imdbscraper.imdb_scraper import IMDBScraper
-    return IMDBScraper("")
+    from imdb_assetscraper.imdb_assetscraper import IMDBAssetScraper
+    return IMDBAssetScraper("")
 
 
 class TestIMDBScraper:

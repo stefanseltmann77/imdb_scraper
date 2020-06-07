@@ -3,3 +3,4 @@
 sphinx
 run
 /.mypy_cache/
+/.pytest_cache/
