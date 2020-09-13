@@ -121,12 +121,13 @@ class IMDBAssetScraper:
 
     @staticmethod
     def _parse_credits_from_soup(soup: BeautifulSoup) -> Dict[str, List[int]]:
-        res: List[bs4.element.Tag] = soup.find("table", attrs={'class': 'cast_list'}). \
-            findChildren('a', {'href': re.compile('/name/nm+.')})
-        for chunk in res[::2]:
-            href_str = chunk.attrs.get("href", "")
-        actor_ids: List[int] = [int(chunk.attrs.get("href", "").split("/")[2][2:]) for chunk in res[::2]]
-        persons = {'actor': actor_ids}
+        soup_result = soup.find("table", attrs={'class': 'cast_list'})
+        if soup_result:
+            res: List[bs4.element.Tag] = soup_result.findChildren('a', {'href': re.compile('/name/nm+.')})
+            actor_ids: List[int] = [int(chunk.attrs.get("href", "").split("/")[2][2:]) for chunk in res[::2]]
+            persons = {'actor': actor_ids}
+        else:
+            persons = {'actor': []}
         return persons
 
     def _parse_storyline_from_soup(self, soup: BeautifulSoup) -> str:

@@ -107,3 +107,8 @@ class TestIMDBScraper:
         """
         soup = BeautifulSoup(website, 'html.parser')
         assert scraper._parse_credits_from_soup(soup) == {'actor': [185819, 1385871]}
+
+    def test__parse_credits_from_soup_without_credits(self, scraper):
+        website = """<table>just an empty string ..."""
+        soup = BeautifulSoup(website, 'html.parser')
+        assert scraper._parse_credits_from_soup(soup) == {'actor': []}
