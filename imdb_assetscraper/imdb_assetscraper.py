@@ -3,7 +3,7 @@ import re
 from dataclasses import dataclass
 from logging import NullHandler
 from pathlib import Path
-from typing import Optional, Set, List, Dict
+from typing import Optional, Set, List, Dict, Any
 from urllib import request
 
 import bs4
@@ -19,35 +19,39 @@ class IMDBAsset:
     fsk: int
     storyline: str
     genres: Set[str]
-    persons: dict
-    awards: dict
-    ratings: dict
+    persons: Dict
+    awards: Dict[str, Any]
+    ratings: Dict
     budget: Optional[int]
     synopsis: str
 
 
 class IMDBAssetScraper:
+    logger: logging.Logger
     URL_BASE: str = 'http://www.imdb.com/title/tt'
-    dir_cache: str
+    dir_cache: Path
 
-    def __init__(self, dir_cache: str):
+    def __init__(self, dir_cache: Path):
         """:param dir_cache: local directory where the scraped objects will be stored."""
-        self.dir_cache = dir_cache
         self.logger = logging.getLogger(__name__)
         self.logger.addHandler(NullHandler())
+        self.dir_cache = dir_cache
 
-    def process_imdb_movie_id(self, imdb_movie_id: int, use_cache: bool = True) -> IMDBAsset:
+    def process_imdb_movie_id(self, imdb_movie_id: int, use_cache: bool = False) -> IMDBAsset:
         """Get website for a given imdb_movie_id and return parsed asset
 
-        :param imdb_movie_id:
-        :param use_cache:
-        :return: parsed asset data as dictionary
+        :param imdb_movie_id: Id as an int according to the imdb website,
+                              e.g. 76759 for https://www.imdb.com/title/tt0076759
+        :param use_cache: if true, a already stored string will be used and no request to the website will be made.
+                          This is useful if the parse is extended and
+                          you don't want to reload for the web for every run
+        :return: parsed asset data as a data class
         """
         content = self.get_webcontent_4_imdb_movie(imdb_movie_id, use_cache=use_cache)
         asset = self.parse_webcontent_4_imdb_movie(imdb_movie_id, content)
         return asset
 
-    def get_webcontent_4_imdb_movie(self, imdb_movie_id: int, use_cache: bool = True) -> str:
+    def get_webcontent_4_imdb_movie(self, imdb_movie_id: int, use_cache: bool = False) -> str:
         """Provide the website for a given imdb_movie_id as a string to be parsed
 
         :param imdb_movie_id: unique ID used by imdb
@@ -55,28 +59,28 @@ class IMDBAssetScraper:
         :return: raw string of the website
         """
         website_string: bytes = b""
-        file_path = Path(self.dir_cache) / Path(f"{imdb_movie_id}.imdb_movie")
+        file_path: Path = Path(self.dir_cache, f"{imdb_movie_id}.imdb_movie")
         if use_cache:
             try:
-                with open(file_path, 'rb') as file_handle:
+                with file_path.open('rb') as file_handle:
                     website_string = file_handle.read()
-                    self.logger.info(f"Loading cached website for {imdb_movie_id}.")
+                    self.logger.info(f"Loading cached website for {imdb_movie_id=}.")
             except FileNotFoundError:
-                self.logger.info(f"{imdb_movie_id} not found in cache.")
+                self.logger.info(f"{imdb_movie_id=} not found in cache.")
         if not website_string or not use_cache:
-            self.logger.info(f"Retrieving website for {imdb_movie_id}.")
+            self.logger.info(f"Retrieving website for {imdb_movie_id=}.")
             url_movie: str = self.URL_BASE + str(imdb_movie_id).zfill(7)
             website_string = request.urlopen(url_movie).read()
             for sub_site in ('parentalguide', 'fullcredits', 'awards', 'business', 'companycredits', 'technical',
                              'keywords', 'plotsummary'):
                 website_sub = request.urlopen(f'{url_movie}/{sub_site}')
                 website_string += website_sub.read()
-            with open(file_path, 'wb') as f:
+            with file_path.open('wb') as f:
                 f.write(website_string)
         return website_string.decode("utf-8")
 
     def parse_webcontent_4_imdb_movie(self, imdb_movie_id: int, website: str) -> IMDBAsset:
-        self.logger.info(f"Parsing webcontent for {imdb_movie_id}")
+        self.logger.info(f"Parsing webcontent for {imdb_movie_id=}")
         soup = BeautifulSoup(website, 'html.parser')
         title_orig = soup.find('meta', {'property': 'og:title'})['content']
         persons = self._parse_credits_from_soup(soup.find('div', {'id': 'fullcredits_content'}))
@@ -91,7 +95,7 @@ class IMDBAssetScraper:
                               storyline=self._parse_storyline_from_soup(soup),
                               genres=self._parse_genre_from_soup(soup),
                               persons=persons,
-                              awards=self._parse_awards_from_soup(soup.find_all('table', {'class': 'awards'})),
+                              awards=self._parse_awards_from_soup(soup),
                               ratings=self._parse_rating_from_soup(soup),
                               budget=self._parse_budget_from_soup(soup),
                               synopsis=self._parse_synopsis_from_soup(soup)
@@ -193,8 +197,9 @@ class IMDBAssetScraper:
 
     @staticmethod
     def _parse_awards_from_soup(soup: BeautifulSoup) -> Dict:
+        search = soup.find_all('table', {'class': 'awards'})
         awards: Dict = {}
-        for award_table in soup:
+        for award_table in search:
             cells = award_table.find_all('td')
             award_outcome_current = None
             award_category_current = None
