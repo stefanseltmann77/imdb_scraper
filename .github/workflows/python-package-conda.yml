@@ -28,8 +28,20 @@ jobs:
           $CONDA/bin/flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
       - name: Test with pytest
         run: |
-          conda install pytest
-          $CONDA/bin/pytest
+          conda install pytest pytest-cov
+          $CONDA/bin/pytest --junitxml=junit/test-results.xml --cov=com --cov-report=xml --cov-report=html
+      - name: Publish Unit Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v1.4
+        if: always()
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          check_name: Unit Test Results
+          comment_title: Unit Test Statistics
+          hide_comments: all but latest
+          comment_on_pr: true
+          files: junit/**/*.xml
+          report_individual_runs: true
+          deduplicate_classes_by_file_name: false
       - name: Build and publish
         env:
           TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
