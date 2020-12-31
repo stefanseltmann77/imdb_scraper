@@ -1,4 +1,4 @@
-name: Python Package using Conda
+name: Python Package Publish
 
 on: [push]
 
@@ -14,22 +14,19 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: 3.8
-      - name: Install dependencies
+      - name: Install pipenv
         run: |
-          # $CONDA is an environment variable pointing to the root of the miniconda directory
-          $CONDA/bin/conda env update --file environment.yml --name base
-          $CONDA/bin/pip install setuptools wheel twine
+          python -m pip install --upgrade pipenv wheel twine setuptools colorama
+      - name: Install environment
+        run: |
+          pipenv sync --dev
       - name: Lint with flake8
         run: |
-          $CONDA/bin/conda install flake8
-          # stop the build if there are Python syntax errors or undefined names
-          $CONDA/bin/flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-          # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-          $CONDA/bin/flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+          pipenv run flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          pipenv run flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
       - name: Test with pytest
         run: |
-          conda install pytest pytest-cov
-          $CONDA/bin/pytest --junitxml=junit/test-results.xml --cov=com --cov-report=xml --cov-report=html
+          pipenv run pytest --junitxml=junit/test-results.xml --cov=com --cov-report=xml --cov-report=html
       - name: Publish Unit Test Results
         uses: EnricoMi/publish-unit-test-result-action@v1.4
         if: always()
@@ -43,9 +40,10 @@ jobs:
           report_individual_runs: true
           deduplicate_classes_by_file_name: false
       - name: Build and publish
+        if: ${{ success() }}
         env:
           TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
           TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
         run: |
-          $CONDA/bin/python setup.py sdist bdist_wheel
-          $CONDA/bin/python -m twine upload dist/* --skip-existing
+          python setup.py sdist bdist_wheel
+          python -m twine upload dist/* --skip-existing
