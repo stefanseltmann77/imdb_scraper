@@ -16,6 +16,11 @@ class TestIMDBScraper:
         soup = BeautifulSoup(website, 'html.parser')
         assert scraper._parse_year_from_soup(soup) == 2012
 
+    def test__parse_runtime_from_soup(self, scraper):
+        website = '<time datetime="PT120M">2h</time>'
+        soup = BeautifulSoup(website, 'html.parser')
+        assert scraper._parse_runtime_from_soup(soup) == 120
+
     def test_parse_genre_from_soup(self, scraper):
         website = """<div class="subtext">12<span class="ghost">|</span><time datetime="PT135M">2h 15min</time>
         <span class="ghost">|</span><a href="/search/title?genres=action&explore=title_type,genres&ref_=tt_ov_inf">Action</a>, 

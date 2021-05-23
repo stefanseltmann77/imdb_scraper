@@ -90,7 +90,7 @@ class IMDBAssetScraper:
         asset_obj = IMDBAsset(imdb_movie_id,
                               title_orig=title_orig.split('(')[0].strip(),
                               year=self._parse_year_from_soup(soup),
-                              duration=self._parse_runtime_from_soup(soup.find('time')),
+                              duration=self._parse_runtime_from_soup(soup),
                               fsk=self._parse_fsk_from_soup(soup),
                               storyline=self._parse_storyline_from_soup(soup),
                               genres=self._parse_genre_from_soup(soup),
@@ -182,17 +182,9 @@ class IMDBAssetScraper:
 
     @staticmethod
     def _parse_runtime_from_soup(soup: BeautifulSoup) -> Optional[int]:
-        runtime: Optional[int] = None
-        if soup:
-            try:
-                runtime_str = soup.text.strip()
-                if runtime_str.find('h') > 0:
-                    runtime_hours, runtime_min = runtime_str.split(' ')
-                    runtime = int(runtime_hours.strip('h')) * 60 + int(runtime_min.strip('min'))
-                else:
-                    runtime = int(soup.text.strip().replace(' min', ''))
-            except ValueError:
-                runtime = None
+        search = soup.find_all('time')
+        runtime: Optional[int]
+        runtime = int(search.pop().attrs['datetime'][2:-1]) if search else None
         return runtime
 
     @staticmethod
