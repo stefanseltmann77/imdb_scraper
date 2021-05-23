@@ -3,7 +3,7 @@ import re
 from dataclasses import dataclass
 from logging import NullHandler
 from pathlib import Path
-from typing import Optional, Set, List, Dict, Any
+from typing import Optional, Any
 from urllib import request
 
 import bs4
@@ -18,10 +18,10 @@ class IMDBAsset:
     duration: Optional[int]
     fsk: int
     storyline: str
-    genres: Set[str]
-    persons: Dict
-    awards: Dict[str, Any]
-    ratings: Dict
+    genres: set[str]
+    persons: dict[str, list[int]]
+    awards: dict[str, Any]
+    ratings: dict
     budget: Optional[int]
     synopsis: str
 
@@ -112,7 +112,7 @@ class IMDBAssetScraper:
                 'rating_imdb_count': int(rating_imdb_count.replace(',', '').replace('.', ''))}
 
     @staticmethod
-    def _parse_genre_from_soup(soup: BeautifulSoup) -> Set[str]:
+    def _parse_genre_from_soup(soup: BeautifulSoup) -> set[str]:
         search = soup.find('div', {'itemprop': 'genre'})
         if search:
             # first old-style parsing:
@@ -124,11 +124,11 @@ class IMDBAssetScraper:
         return genres
 
     @staticmethod
-    def _parse_credits_from_soup(soup: BeautifulSoup) -> Dict[str, List[int]]:
+    def _parse_credits_from_soup(soup: BeautifulSoup) -> dict[str, list[int]]:
         soup_result = soup.find("table", attrs={'class': 'cast_list'})
         if soup_result:
-            res: List[bs4.element.Tag] = soup_result.findChildren('a', {'href': re.compile('/name/nm+.')})
-            actor_ids: List[int] = [int(chunk.attrs.get("href", "").split("/")[2][2:]) for chunk in res[::2]]
+            res: list[bs4.element.Tag] = soup_result.findChildren('a', {'href': re.compile('/name/nm+.')})
+            actor_ids: list[int] = [int(chunk.attrs.get("href", "").split("/")[2][2:]) for chunk in res[::2]]
             persons = {'actor': actor_ids}
         else:
             persons = {'actor': []}
@@ -196,9 +196,9 @@ class IMDBAssetScraper:
         return runtime
 
     @staticmethod
-    def _parse_awards_from_soup(soup: BeautifulSoup) -> Dict:
+    def _parse_awards_from_soup(soup: BeautifulSoup) -> dict:
         search = soup.find_all('table', {'class': 'awards'})
-        awards: Dict = {}
+        awards: dict = {}
         for award_table in search:
             cells = award_table.find_all('td')
             award_outcome_current = None
