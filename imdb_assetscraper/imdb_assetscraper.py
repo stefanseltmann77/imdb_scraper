@@ -104,16 +104,25 @@ class IMDBAssetScraper:
 
     @staticmethod
     def _parse_rating_from_soup(soup: BeautifulSoup):
-        search_tmp = soup.find('div', attrs={'class': 'imdbRating'})
-        search_spans = search_tmp.find_all('span')
-        rating_imdb = search_spans[0].contents[0]
-        rating_imdb_count = search_spans[3].contents[0]
+        rating_imdb = \
+            soup.find('span',
+                      attrs={'class': 'AggregateRatingButton__RatingScore-sc-1il8omz-1'}).get_text()
+        rating_imdb_count = \
+            soup.find('div',
+                      attrs={'class': 'AggregateRatingButton__TotalRatingAmount-sc-1il8omz-3'}).get_text()
+        if rating_imdb_count.endswith('K'):
+            rating_imdb_count = rating_imdb_count[:-1] + '000'
+        elif rating_imdb_count.endswith('M'):
+            rating_imdb_count = rating_imdb_count[:-1] + '000000'
+
         return {'rating_imdb': float(rating_imdb.replace(',', '.')),
                 'rating_imdb_count': int(rating_imdb_count.replace(',', '').replace('.', ''))}
 
     @staticmethod
     def _parse_genre_from_soup(soup: BeautifulSoup) -> set[str]:
         search = soup.find('div', {'itemprop': 'genre'})
+        search = soup.find('li', {'data-testid': 'storyline-genres'}).div.ul
+        print(search)
         if search:
             # first old-style parsing:
             genres_raw = search.find_all('a')
@@ -136,7 +145,8 @@ class IMDBAssetScraper:
 
     def _parse_storyline_from_soup(self, soup: BeautifulSoup) -> str:
         try:
-            storyline_raw: str = soup.find('div', {'class': 'inline canwrap'}).p.span.get_text()
+            storyline_raw: str = soup.find('div', {'class': 'Storyline__StorylineWrapper-sc-1b58ttw-0'}). \
+                div.div.div.get_text()
         except AttributeError:
             storyline_raw = ""  # fixme
         if not storyline_raw:
@@ -149,7 +159,7 @@ class IMDBAssetScraper:
         except AttributeError:
             synopsis = ""  # fixme
         if not synopsis:
-            self.logger.error("No storyline found!")
+            self.logger.error("No synopsis found!")
         return synopsis.replace("\n", "").replace('"', "").strip()
 
     @staticmethod
@@ -166,7 +176,7 @@ class IMDBAssetScraper:
 
     @staticmethod
     def _parse_year_from_soup(soup: BeautifulSoup) -> int:
-        year: str = soup.find('span', {'id': 'titleYear'}).a.get_text()
+        year = soup.find('ul', {'class': 'ipc-inline-list'}).span.get_text()
         return int(year)
 
     @staticmethod
@@ -182,9 +192,13 @@ class IMDBAssetScraper:
 
     @staticmethod
     def _parse_runtime_from_soup(soup: BeautifulSoup) -> Optional[int]:
-        search = soup.find_all('time')
+        search = soup.find('li', {'data-testid': 'title-techspec_runtime'}).div.ul.li.span.get_text()
+        search_chunks = search.split()
         runtime: Optional[int]
-        runtime = int(search.pop().attrs['datetime'][2:-1]) if search else None
+        if len(search_chunks) == 2:
+            runtime = int(search_chunks[0][:-1]) * 60 + int(search_chunks[1][:-3])
+        else:
+            raise NotImplemented()
         return runtime
 
     @staticmethod

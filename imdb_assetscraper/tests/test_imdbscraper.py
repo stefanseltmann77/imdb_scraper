@@ -1,44 +1,44 @@
+from pathlib import Path
+
 import pytest
 from bs4 import BeautifulSoup
+
+from imdb_assetscraper import project_dir
 
 
 @pytest.fixture
 def scraper():
     from imdb_assetscraper.imdb_assetscraper import IMDBAssetScraper
-    return IMDBAssetScraper("")
+    return IMDBAssetScraper(Path(""))
+
+
+@pytest.fixture(scope='session')
+def html_test():
+    with Path(project_dir, 'imdb_assetscraper', 'tests', 'test_data.html').open() as f:
+        html_content = f.read()
+    return html_content
+
+
+@pytest.fixture(scope='session')
+def soup(html_test):
+    soup = BeautifulSoup(html_test, 'html.parser')
+    return soup
 
 
 class TestIMDBScraper:
 
-    def test__parse_year_from_soup(self, scraper):
-        website = '<h1 class="">Total Recall&nbsp;<span id="titleYear">' \
-                  '(<a href="/year/2012/?ref_=tt_ov_inf">2012</a>)</span></h1>'
-        soup = BeautifulSoup(website, 'html.parser')
-        assert scraper._parse_year_from_soup(soup) == 2012
+    def test__parse_year_from_soup(self, scraper, soup):
+        assert scraper._parse_year_from_soup(soup) == 2008
 
-    def test__parse_runtime_from_soup(self, scraper):
-        website = '<time datetime="PT120M">2h</time>'
-        soup = BeautifulSoup(website, 'html.parser')
-        assert scraper._parse_runtime_from_soup(soup) == 120
+    def test__parse_runtime_from_soup(self, scraper, soup):
+        assert scraper._parse_runtime_from_soup(soup) == 152
 
-    def test_parse_genre_from_soup(self, scraper):
-        website = """<div class="subtext">12<span class="ghost">|</span><time datetime="PT135M">2h 15min</time>
-        <span class="ghost">|</span><a href="/search/title?genres=action&explore=title_type,genres&ref_=tt_ov_inf">Action</a>, 
-        <a href="/search/title?genres=adventure&explore=title_type,genres&ref_=tt_ov_inf">Adventure</a>,
-        <a href="/search/title?genres=sci-fi&explore=title_type,genres&ref_=tt_ov_inf">Sci-Fi</a><span class="ghost">|</span>
-        <a href="/title/tt3778644/releaseinfo?ref_=tt_ov_inf"
-            title="See more release dates" >24 May 2018 (Germany)</a></div>"""
-        soup = BeautifulSoup(website, 'html.parser')
+    def test_parse_genre_from_soup(self, scraper, soup):
         result = scraper._parse_genre_from_soup(soup)
-        assert result == {'Adventure', 'Action', 'Sci-Fi'}
+        assert result == {'Action', 'Drama', 'Thriller', 'Crime'}
 
-    def test__parse_rating_from_soup(self, scraper):
-        website = """<div class="imdbRating"><div class="ratingValue"><strong title="7,2 based on 413.699 user ratings">
-            <span>7,2</span></strong><span class="grey">/</span><span class="grey">10</span></div>
-            <a href="/title/tt2527336/ratings?ref_=tt_ov_rt"><span class="small">413.699</span></a>
-            <div class="hiddenImportant"><span>5.564 user</span><span>648 critic</span></div></div>"""
-        soup = BeautifulSoup(website, 'html.parser')
-        assert scraper._parse_rating_from_soup(soup) == {'rating_imdb': 7.2, 'rating_imdb_count': 413699}
+    def test__parse_rating_from_soup(self, scraper, soup):
+        assert scraper._parse_rating_from_soup(soup) == {'rating_imdb': 9.0, 'rating_imdb_count': 24000000}
 
     def test__parse_fsk_from_soup(self, scraper):
         website = """<li class="ipl-inline-list__item"> <a href="/search/title?certificates=DE:16">Germany:16</a> 
@@ -56,22 +56,8 @@ class TestIMDBScraper:
         soup = BeautifulSoup(website, 'html.parser')
         assert scraper._parse_fsk_from_soup(soup) == 12
 
-    def test__storyline_from_soup(self, scraper):
-        website = """<h2>Storyline</h2>
-        <div class="inline canwrap">
-            <p>
-                <span>    In the aftermath of <a href="/title/tt3498820?ref_=tt_stry_pl">The First Avenger: 
-                Civil War</a> (2016), Scott Lang grapples with the consequences of his choices as both a superhero 
-                and a father. As he struggles to rebalance his home life with his responsibilities as Ant-Man, 
-                he's confronted by Hope van Dyne and Dr. Hank Pym with an urgent new mission. 
-                Scott must once again put on the suit and learn to fight alongside The 
-                Wasp as the team works together to uncover secrets from their past.</span>
-                <em class="nobr">Written by
-                <a href="/search/title?plot_author=Walt%20Disney%20Studios&view=simple&sort=alpha&ref_=tt_stry_pl"
-                >Walt Disney Studios</a></em>            </p>
-        </div>"""
-        soup = BeautifulSoup(website, 'html.parser')
-        assert scraper._parse_storyline_from_soup(soup).startswith('In the aftermath')
+    def test__storyline_from_soup(self, scraper, soup):
+        assert scraper._parse_storyline_from_soup(soup).startswith('Set within a year after the events')
 
     def test__parse_credits_from_soup(self, scraper):
         website = """
