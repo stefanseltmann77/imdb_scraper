@@ -190,7 +190,10 @@ class IMDBAssetScraper:
         if len(search_chunks) == 2:
             runtime = int(search_chunks[0][:-1]) * 60 + int(search_chunks[1][:-3])
         else:
-            raise NotImplemented()
+            if search_chunks[0].endswith("h"):
+                runtime = int(search_chunks[0][:-1]) * 60
+            else:
+                raise NotImplemented()
         return runtime
 
     @staticmethod
