@@ -104,12 +104,8 @@ class IMDBAssetScraper:
 
     @staticmethod
     def _parse_rating_from_soup(soup: BeautifulSoup):
-        rating_imdb = \
-            soup.find('span',
-                      attrs={'class': 'AggregateRatingButton__RatingScore-sc-1il8omz-1'}).get_text()
-        rating_imdb_count = \
-            soup.find('div',
-                      attrs={'class': 'AggregateRatingButton__TotalRatingAmount-sc-1il8omz-3'}).get_text()
+        rating_imdb = soup.find('span', attrs={'itemprop': 'ratingValue'}).get_text()
+        rating_imdb_count = soup.find('span', attrs={'itemprop': 'ratingCount'}).get_text()
         if rating_imdb_count.endswith('K'):
             rating_imdb_count = rating_imdb_count[:-1] + '000'
         elif rating_imdb_count.endswith('M'):
@@ -120,16 +116,8 @@ class IMDBAssetScraper:
 
     @staticmethod
     def _parse_genre_from_soup(soup: BeautifulSoup) -> set[str]:
-        search = soup.find('div', {'itemprop': 'genre'})
-        search = soup.find('li', {'data-testid': 'storyline-genres'}).div.ul
-        print(search)
-        if search:
-            # first old-style parsing:
-            genres_raw = search.find_all('a')
-            genres = {genre.text.strip() for genre in genres_raw}
-        else:
-            genres_raw = soup.find_all('a', attrs={'href': re.compile("genres=")})
-            genres = {element.contents[0].strip() for element in genres_raw}
+        genres_raw = soup.select('a[href^="/search/title?genres"]')
+        genres = {element.contents[0].strip() for element in genres_raw}
         return genres
 
     @staticmethod
@@ -145,8 +133,8 @@ class IMDBAssetScraper:
 
     def _parse_storyline_from_soup(self, soup: BeautifulSoup) -> str:
         try:
-            storyline_raw: str = soup.find('div', {'class': 'Storyline__StorylineWrapper-sc-1b58ttw-0'}). \
-                div.div.div.get_text()
+            storyline_raw: str = soup.find('div', {'id': 'titleStoryLine'}). \
+                div.get_text()
         except AttributeError:
             storyline_raw = ""  # fixme
         if not storyline_raw:
@@ -176,9 +164,13 @@ class IMDBAssetScraper:
 
     @staticmethod
     def _parse_year_from_soup(soup: BeautifulSoup) -> int:
-        year = soup.find('ul', {'class': 'ipc-inline-list'}).span.get_text()
+        year = soup.find('span', {'id': 'titleYear'}).get_text().strip('(').strip(')')
         return int(year)
 
+    # < li
+    # role = "presentation"
+    #
+    # class ="ipc-inline-list__item" > < a href="/title/tt2120120/releaseinfo?ref_=tt_ov_rdat#releases" class ="ipc-link ipc-link--baseAlt ipc-link--inherit-color TitleBlockMetaData__StyledTextLink-sc-12ein40-1 rgaOW" > 2015 < / a > < span class ="TitleBlockMetaData__ListItemText-sc-12ein40-2 jedhex" > 2015 < / span > < / li >
     @staticmethod
     def _parse_fsk_from_soup(soup: BeautifulSoup) -> int:
         """fsk is the German required age to access an asset"""
@@ -192,7 +184,7 @@ class IMDBAssetScraper:
 
     @staticmethod
     def _parse_runtime_from_soup(soup: BeautifulSoup) -> Optional[int]:
-        search = soup.find('li', {'data-testid': 'title-techspec_runtime'}).div.ul.li.span.get_text()
+        search = soup.find('time').get_text()
         search_chunks = search.split()
         runtime: Optional[int]
         if len(search_chunks) == 2:

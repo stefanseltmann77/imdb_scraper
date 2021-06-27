@@ -38,7 +38,7 @@ class TestIMDBScraper:
         assert result == {'Action', 'Drama', 'Thriller', 'Crime'}
 
     def test__parse_rating_from_soup(self, scraper, soup):
-        assert scraper._parse_rating_from_soup(soup) == {'rating_imdb': 9.0, 'rating_imdb_count': 24000000}
+        assert scraper._parse_rating_from_soup(soup) == {'rating_imdb': 9.0, 'rating_imdb_count': 2369937}
 
     def test__parse_fsk_from_soup(self, scraper):
         website = """<li class="ipl-inline-list__item"> <a href="/search/title?certificates=DE:16">Germany:16</a> 
