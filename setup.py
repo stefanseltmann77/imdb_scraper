@@ -5,7 +5,7 @@ with open("README.rst", "r") as fh:
 
 setuptools.setup(
     name="imdb_assetscraper",
-    version="0.4.1",
+    version="0.5.0",
     author="Stefan Seltmann",
     author_email="s.seltmann06@web.de",
     description="imdb_assetscraper",

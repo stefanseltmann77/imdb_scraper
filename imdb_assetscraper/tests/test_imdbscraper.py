@@ -14,7 +14,7 @@ def scraper():
 
 @pytest.fixture(scope='session')
 def html_test():
-    with Path(project_dir, 'imdb_assetscraper', 'tests', 'test_data.html').open() as f:
+    with Path(project_dir, 'imdb_assetscraper', 'tests', 'test_data.html').open(encoding='utf-8') as f:
         html_content = f.read()
     return html_content
 
@@ -35,10 +35,10 @@ class TestIMDBScraper:
 
     def test_parse_genre_from_soup(self, scraper, soup):
         result = scraper._parse_genre_from_soup(soup)
-        assert result == {'Action', 'Drama', 'Thriller', 'Crime'}
+        assert result == {'Action', 'Drama', 'Crime'}
 
     def test__parse_rating_from_soup(self, scraper, soup):
-        assert scraper._parse_rating_from_soup(soup) == {'rating_imdb': 9.0, 'rating_imdb_count': 2369937}
+        assert scraper._parse_rating_from_soup(soup) == {'rating_imdb': 9.0, 'rating_imdb_count': 2400000}
 
     def test__parse_fsk_from_soup(self, scraper):
         website = """<li class="ipl-inline-list__item"> <a href="/search/title?certificates=DE:16">Germany:16</a> 
