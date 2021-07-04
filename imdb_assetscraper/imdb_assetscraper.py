@@ -104,21 +104,31 @@ class IMDBAssetScraper:
 
     @staticmethod
     def _parse_rating_from_soup(soup: BeautifulSoup):
-        rating_imdb_raw = soup.select('span[class^="AggregateRatingButton__RatingScore"]')[0].get_text()
+        try:
+            rating_imdb_raw = soup.select('span[class^="AggregateRatingButton__RatingScore"]')[0].get_text()
+            rating_imdb_count_raw = soup.select('div[class^="AggregateRatingButton__TotalRatingAmount"]')[0].get_text()
+        except IndexError:
+            rating_imdb_raw = soup.find('span', attrs={'itemprop': 'ratingValue'}).get_text()
+            rating_imdb_count_raw = soup.find('span', attrs={'itemprop': 'ratingCount'}).get_text()
         rating_imdb = float(rating_imdb_raw)
-        rating_imdb_count = soup.select('div[class^="AggregateRatingButton__TotalRatingAmount"]')[0].get_text()
-        if rating_imdb_count.endswith('K'):
-            rating_imdb_count = float(rating_imdb_count[:-1]) * 1_000
-        elif rating_imdb_count.endswith('M'):
-            rating_imdb_count = float(rating_imdb_count[:-1]) * 1_000 * 1_000
+
+        if rating_imdb_count_raw.endswith('K'):
+            rating_imdb_count = float(rating_imdb_count_raw[:-1]) * 1_000
+        elif rating_imdb_count_raw.endswith('M'):
+            rating_imdb_count = float(rating_imdb_count_raw[:-1]) * 1_000 * 1_000
+        else:
+            rating_imdb_count = int(rating_imdb_count_raw.replace(',', ''))
 
         return {'rating_imdb': rating_imdb,
-                'rating_imdb_count': int(rating_imdb_count)}
+                'rating_imdb_count': rating_imdb_count}
 
     @staticmethod
     def _parse_genre_from_soup(soup: BeautifulSoup) -> set[str]:
         genres_raw = soup.select('a[href^="/search/title?genres"]')
-        genres = {element.span.get_text().strip() for element in genres_raw}
+        try:
+            genres = {element.span.get_text().strip() for element in genres_raw}
+        except AttributeError:
+            genres = {element.get_text().strip() for element in genres_raw}
         return genres
 
     @staticmethod
@@ -133,17 +143,14 @@ class IMDBAssetScraper:
         return persons
 
     def _parse_storyline_from_soup(self, soup: BeautifulSoup) -> str:
-        soup_result = soup.select('div[class^="Storyline__StorylineWrapper"]')[0]
-        soup_result = soup_result.div.div.div.get_text()
-        # soup_result = soup.find("table", attrs={'class': 'cast_list'})
-        # try:
-        #     storyline_raw: str = soup.find('div', {'id': 'titleStoryLine'}). \
-        #         div.get_text()
-        # except AttributeError:
-        #     storyline_raw = ""  # fixme
-        # if not storyline_raw:
-        #     self.logger.error("No storyline found!")
-        return soup_result.replace("\n", "").replace('"', "").strip()
+
+        try:
+            soup_result = soup.select('div[class^="Storyline__StorylineWrapper"]')[0]
+            soup_result = soup_result.div.div.div.get_text()
+            story_line = soup_result.replace("\n", "").replace('"', "").strip()
+        except IndexError:
+            story_line = soup.find('div', {'id': 'titleStoryLine'}).div.p.span.get_text().strip()
+        return story_line
 
     def _parse_synopsis_from_soup(self, soup: BeautifulSoup) -> str:
         try:
